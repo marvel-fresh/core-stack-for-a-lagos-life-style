@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lagos Life-Style | Core Game Architecture & Cross-Platform Input</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --lagos-yellow: #F7C928;
+            --lagos-stripe: #1B1B1B;
+            --danfo-gold: #FFB800;
+            --green-accent: #00B159;
+            --bg-dark: #0B0E14;
+            --card-bg: #141923;
+            --card-border: #232B3A;
+            --text-main: #F3F4F6;
+            --text-muted: #9CA3AF;
+            --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Danfo Iconic Yellow & Black Header Stripes */
+        .danfo-stripe-bar {
+            height: 8px;
+            background: repeating-linear-gradient(
+                -45deg,
+                var(--lagos-yellow),
+                var(--lagos-yellow) 16px,
+                #000000 16px,
+                #000000 32px
+            );
+            width: 100%;
+        }
+
+        header {
+            padding: 1.5rem 2rem;
+            background: rgba(20, 25, 35, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-badge {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .danfo-tag {
+            background: var(--lagos-yellow);
+            color: #000;
+            font-weight: 800;
+            padding: 0.25rem 0.65rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+
+        .title-group h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .title-group p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .nav-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+            padding: 0.45rem 0.9rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            color: #000;
+            background: var(--lagos-yellow);
+            border-color: var(--lagos-yellow);
+        }
+
+        main {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            width: 100%;
+            flex: 1;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        @media (max-width: 960px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green-accent);
+            box-shadow: 0 0 10px var(--green-accent);
+        }
+
+        /* Interactive Simulator Canvas */
+        .sim-container {
+            position: relative;
+            background: #0d1118;
+            border-radius: 10px;
+            height: 380px;
+            overflow: hidden;
+            border: 1px solid #1f2737;
+            user-select: none;
+            touch-action: none;
+        }
+
+        #simCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .sim-overlay-hud {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(11, 14, 20, 0.85);
+            padding: 0.5rem 0.85rem;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--lagos-yellow);
+            pointer-events: none;
+        }
+
+        /* Mobile On-Screen Controller Simulation Area */
+        .controls-layer {
+            position: absolute;
+            bottom: 12px;
+            left: 0;
+            right: 0;
+            padding: 0 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+        }
+
+        .joystick-zone {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px dashed rgba(247, 201, 40, 0.4);
+            border-radius: 50%;
+            position: relative;
+            pointer-events: auto;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+        }
+
+        .joystick-handle {
+            width: 48px;
+            height: 48px;
+            background: radial-gradient(circle, var(--lagos-yellow) 20%, #cca210 100%);
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+            transform: translate(0px, 0px);
+            pointer-events: none;
+            transition: transform 0.05s ease-out;
+        }
+
+        .action-pad {
+            display: grid;
+            grid-template-columns: repeat(2, 54px);
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .sim-btn {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: rgba(20, 25, 35, 0.9);
+            border: 2px solid var(--lagos-yellow);
+            color: var(--lagos-yellow);
+            font-weight: 700;
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: transform 0.1s, background 0.1s;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .sim-btn span {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+        }
+
+        .sim-btn:active, .sim-btn.pressed {
+            background: var(--lagos-yellow);
+            color: #000;
+            transform: scale(0.92);
+        }
+
+        /* Telemetry & Architecture Cards */
+        .telemetry-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .stat-box {
+            background: #0f131c;
+            border: 1px solid var(--card-border);
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-val {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--lagos-yellow);
+        }
+
+        /* Tabs & Script Viewer */
+        .tab-bar {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            background: #232b3a;
+            color: var(--lagos-yellow);
+            font-weight: 600;
+        }
+
+        pre {
+            background: #0a0d13;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: #e5e7eb;
+            max-height: 380px;
+            border: 1px solid #1c2230;
+        }
+
+        /* Guide Roadmap Section */
+        .roadmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+
+        .stage-card {
+            background: #111622;
+            border-left: 4px solid var(--lagos-yellow);
+            border-radius: 8px;
+            padding: 1.2rem;
+            border-top: 1px solid var(--card-border);
+            border-right: 1px solid var(--card-border);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .stage-tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--lagos-yellow);
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .stage-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stage-card ul {
+            padding-left: 1.2rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .stage-card li {
+            margin-bottom: 0.35rem;
+        }
+
+        footer {
+            border-top: 1px solid var(--card-border);
+            padding: 2rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 3rem;
+            background: #0b0e14;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="danfo-stripe-bar"></div>
+
+    <header>
+        <div class="brand-badge">
+            <span class="danfo-tag">LAGOS 3D</span>
+            <div class="title-group">
+                <h1>Lagos Life-Style Core Stack</h1>
+                <p>Cross-Platform (Mobile & PC) Unity Architecture</p>
+            </div>
+        </div>
+        <nav class="nav-links">
+            <a href="#simulator" class="nav-btn active">Input Simulator</a>
+            <a href="#scripts" class="nav-btn">Unity Scripts</a>
+            <a href="#roadmap" class="nav-btn">6-Month Roadmap</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="grid-2">
+            <!-- Left: Interactive Simulator -->
+            <div class="card" id="simulator">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="status-dot"></span>
+                        Cross-Platform Input Tester (Danfo & Player)
+                    </div>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">WASD / Arrow Keys or Touch Joystick</span>
+                </div>
+
+                <div class="sim-container" id="simWrapper">
+                    <canvas id="simCanvas"></canvas>
+                    
+                    <div class="sim-overlay-hud">
+                        MODE: <span id="modeDisplay" style="color:#00B159">ON FOOT (WALKING)</span><br>
+                        SPEED: <span id="speedDisplay">0.0 km/h</span> | HEADING: <span id="headingDisplay">0°</span>
+                    </div>
+
+                    <!-- Touch Controls Overlay -->
+                    <div class="controls-layer">
+                        <div class="joystick-zone" id="joystickZone" title="Drag to steer or walk">
+                            <div class="joystick-handle" id="joystickHandle"></div>
+                        </div>
+
+                        <div class="action-pad">
+                            <button class="sim-btn" id="btnSprint" title="Hold or Shift">
+                                RUN
+                                <span>Shift</span>
+                            </button>
+                            <button class="sim-btn" id="btnJump" title="Tap or Space">
+                                JUMP
+                                <span>Space</span>
+                            </button>
+                            <button class="sim-btn" id="btnInteract" title="Tap or E / F">
+                                DANFO
+                                <span>E / Enter</span>
+                            </button>
+                            <button class="sim-btn" id="btnHorn" title="Tap or H">
+                                HORN
+                                <span>H / Beep</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="telemetry-row">
+                    <div class="stat-box">
+                        <div class="stat-label">Vector2 Move</div>
+                        <div class="stat-val" id="statMove">(0.00, 0.00)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Input Source</div>
+                        <div class="stat-val" id="statSource" style="color:var(--green-accent)">IDLE</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Vehicle Interaction</div>
+                        <div class="stat-val" id="statVehicle">NEARBY (E to Enter)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Cross-Platform Input Setup Breakdown -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        Unity Input System Breakdown
+                    </div>
+                    <span class="danfo-tag" style="font-size:0.7rem;">URP + Mobile</span>
+                </div>
+
+                <div style="font-size: 0.88rem; color: #D1D5DB; display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <strong style="color: var(--lagos-yellow);">1. Centralized Input Manager Pattern:</strong>
+                        <p style="color: var(--text-muted); margin-top: 0.25rem;">
+                            Instead of calling <code>Input.GetAxis</code> directly inside character and vehicle scripts, both read from <code>LagosLifestyle.Input.InputManager.Instance</code>.
+                        </p>
+                    </div>
+
+                    <div>
+                        <strong style="color: var(--lagos-yellow);">2. Seamless Mobile & PC Binding:</strong>
+                        <p style="color: var(--text-muted); margin-top: 0.25rem;">
+                            On PC, standard Keyboard/Mouse and Gamepads drive movement. On Android/iOS, the on-screen Canvas with <code>VirtualJoystick</code> and <code>TouchActionButton</code> feeds the exact same vector to the manager.
+                        </p>
+                    </div>
+
+                    <div>
+                        <strong style="color: var(--lagos-yellow);">3. Canvas Scaler for All Screens:</strong>
+                        <p style="color: var(--text-muted); margin-top: 0.25rem;">
+                            Canvas Scaler is set to <em>Scale With Screen Size</em> (Reference Resolution: 1920x1080, Match Width/Height: 0.5) with corner anchoring so controls remain fingertip-accessible from compact 5.5" phones to widescreen monitors.
+                        </p>
+                    </div>
+
+                    <div>
+                        <strong style="color: var(--lagos-yellow);">4. Contextual UI Swapping:</strong>
+                        <p style="color: var(--text-muted); margin-top: 0.25rem;">
+                            When the player walks up to a Danfo minibus and presses Interact, <code>VehicleEntryExit.cs</code> disables the player collider, seats the camera onto the vehicle, and switches on-screen controls to Gas/Brake/Steer/Horn.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unity C# Script Explorer -->
+        <div class="card" id="scripts" style="margin-bottom: 2.5rem;">
+            <div class="card-header">
+                <div class="card-title">
+                    Modular Unity C# Codebase
+                </div>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Assets/Scripts/...</span>
+            </div>
+
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchScript('inputManager')">InputManager.cs</button>
+                <button class="tab-btn" onclick="switchScript('joystick')">VirtualJoystick.cs</button>
+                <button class="tab-btn" onclick="switchScript('touchButton')">TouchActionButton.cs</button>
+                <button class="tab-btn" onclick="switchScript('player')">PlayerController.cs</button>
+                <button class="tab-btn" onclick="switchScript('car')">CarController.cs</button>
+                <button class="tab-btn" onclick="switchScript('entryExit')">VehicleEntryExit.cs</button>
+            </div>
+
+            <pre><code id="codeViewer">// Loading Unity C# script...</code></pre>
+        </div>
+
+        <!-- Lagos Roadmap Section -->
+        <div class="card" id="roadmap">
+            <div class="card-header">
+                <div class="card-title">
+                    Lagos Life-Style 6-Month Roadmap & Mobile Optimization
+                </div>
+                <span class="danfo-tag">Production Plan</span>
+            </div>
+
+            <div class="roadmap-grid">
+                <div class="stage-card">
+                    <div class="stage-tag">Month 1 (Weeks 1-4)</div>
+                    <div class="stage-title">Input, Player & Follow Camera</div>
+                    <ul>
+                        <li>Set up URP with Mobile Forward Renderer.</li>
+                        <li>Implement unified InputManager (Touch + Keyboard).</li>
+                        <li>Character locomotion with Cinemachine Third-Person.</li>
+                        <li>Rig Mixamo street character animations.</li>
+                    </ul>
+                </div>
+
+                <div class="stage-card">
+                    <div class="stage-tag">Month 2 (Weeks 5-8)</div>
+                    <div class="stage-title">Lagos Vehicle Physics (Danfo & Okada)</div>
+                    <ul>
+                        <li>Tune WheelCollider torque, suspension and low center of mass.</li>
+                        <li>Seamless enter/exit vehicle transitions.</li>
+                        <li>Lagos horn sound effects and engine pitch scaling.</li>
+                        <li>Mobile driving button layout with handbrake drift.</li>
+                    </ul>
+                </div>
+
+                <div class="stage-card">
+                    <div class="stage-tag">Month 3 (Weeks 9-12)</div>
+                    <div class="stage-title">One Lagos Street Blockout</div>
+                    <ul>
+                        <li>Model iconic yellow Danfo buses, kiosks & roadside stalls.</li>
+                        <li>Create low-poly street environment in Blender / ProBuilder.</li>
+                        <li>Unity NavMesh for pedestrian crowd behavior.</li>
+                        <li>Benchmark early on budget Android device (30-60 FPS).</li>
+                    </ul>
+                </div>
+
+                <div class="stage-card">
+                    <div class="stage-tag">Month 4-5</div>
+                    <div class="stage-title">Open-World Gameplay & Economy</div>
+                    <ul>
+                        <li>Danfo passenger pick-up & drop-off mission loop.</li>
+                        <li>In-game Naira economy system (fare collection, fuel, upgrades).</li>
+                        <li>JSON-based save/load system for mobile persistence.</li>
+                        <li>Lagos street ambience and Afrobeats radio player.</li>
+                    </ul>
+                </div>
+
+                <div class="stage-card">
+                    <div class="stage-tag">Month 6+</div>
+                    <div class="stage-title">Optimization & Multiplatform Shipping</div>
+                    <ul>
+                        <li>LOD groups (Level of Detail) & static batching.</li>
+                        <li>Bake Global Illumination (lightmaps) for mobile.</li>
+                        <li>Split world into streaming chunks to fit under 2GB RAM.</li>
+                        <li>Release build for Android (Google Play) and PC (itch.io).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Lagos Life-Style Project &bull; Built with Unity (C#) & Universal Render Pipeline (URP)</p>
+    </footer>
+
+    <script>
+        // --- Interactive 2D/3D Canvas Simulator ---
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const simWrapper = document.getElementById('simWrapper');
+
+        function resizeCanvas() {
+            canvas.width = simWrapper.clientWidth;
+            canvas.height = simWrapper.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Game State
+        const state = {
+            mode: 'walking', // 'walking' or 'driving'
+            x: 180,
+            y: 200,
+            angle: 0,
+            speed: 0,
+            moveX: 0,
+            moveY: 0,
+            isSprinting: false,
+            danfoX: 300,
+            danfoY: 200,
+            danfoAngle: 0,
+            danfoSpeed: 0
+        };
+
+        // Audio Horn Synthesizer
+        function playHornSound() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const actx = new AudioCtx();
+                const osc1 = actx.createOscillator();
+                const osc2 = actx.createOscillator();
+                const gain = actx.createGain();
+
+                osc1.type = 'sawtooth';
+                osc2.type = 'sawtooth';
+                osc1.frequency.setValueAtTime(420, actx.currentTime);
+                osc2.frequency.setValueAtTime(480, actx.currentTime);
+
+                gain.gain.setValueAtTime(0.15, actx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.35);
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(actx.destination);
+
+                osc1.start();
+                osc2.start();
+                osc1.stop(actx.currentTime + 0.35);
+                osc2.stop(actx.currentTime + 0.35);
+            } catch(e) {}
+        }
+
+        // Keyboard Event Listeners
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key === 'Shift') state.isSprinting = true;
+            if (e.key.toLowerCase() === 'h') playHornSound();
+            if (e.key.toLowerCase() === 'e' || e.key.toLowerCase() === 'f') toggleVehicleMode();
+            updateSource();
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+            if (e.key === 'Shift') state.isSprinting = false;
+            updateSource();
+        });
+
+        function updateSource() {
+            const hasKey = keys['w'] || keys['a'] || keys['s'] || keys['d'] || keys['arrowup'] || keys['arrowdown'] || keys['arrowleft'] || keys['arrowright'];
+            const sourceEl = document.getElementById('statSource');
+            if (joystickActive) {
+                sourceEl.textContent = 'TOUCH JOYSTICK';
+                sourceEl.style.color = 'var(--lagos-yellow)';
+            } else if (hasKey) {
+                sourceEl.textContent = 'KEYBOARD (WASD)';
+                sourceEl.style.color = '#38bdf8';
+            } else {
+                sourceEl.textContent = 'IDLE';
+                sourceEl.style.color = 'var(--green-accent)';
+            }
+        }
+
+        // Virtual Touch Joystick Implementation
+        const joystickZone = document.getElementById('joystickZone');
+        const joystickHandle = document.getElementById('joystickHandle');
+        let joystickActive = false;
+        let joyTouchId = null;
+        let joyCenter = { x: 0, y: 0 };
+        const joyRadius = 50;
+
+        function handleJoyStart(clientX, clientY) {
+            joystickActive = true;
+            const rect = joystickZone.getBoundingClientRect();
+            joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            handleJoyMove(clientX, clientY);
+            updateSource();
+        }
+
+        function handleJoyMove(clientX, clientY) {
+            if (!joystickActive) return;
+            const dx = clientX - joyCenter.x;
+            const dy = clientY - joyCenter.y;
+            const dist = Math.hypot(dx, dy);
+
+            let normX = 0;
+            let normY = 0;
+
+            if (dist > 0) {
+                const clampedDist = Math.min(dist, joyRadius);
+                const angle = Math.atan2(dy, dx);
+                const handleX = Math.cos(angle) * clampedDist;
+                const handleY = Math.sin(angle) * clampedDist;
+
+                joystickHandle.style.transform = `translate(${handleX}px, ${handleY}px)`;
+                normX = handleX / joyRadius;
+                normY = -(handleY / joyRadius); // Invert Y for forward = up
+            }
+
+            state.moveX = normX;
+            state.moveY = normY;
+        }
+
+        function handleJoyEnd() {
+            joystickActive = false;
+            joyTouchId = null;
+            joystickHandle.style.transform = `translate(0px, 0px)`;
+            state.moveX = 0;
+            state.moveY = 0;
+            updateSource();
+        }
+
+        // Mouse Drag on Joystick
+        joystickZone.addEventListener('mousedown', (e) => {
+            handleJoyStart(e.clientX, e.clientY);
+            const onMouseMove = (ev) => handleJoyMove(ev.clientX, ev.clientY);
+            const onMouseUp = () => {
+                handleJoyEnd();
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+            };
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+        });
+
+        // Touch on Joystick
+        joystickZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            joyTouchId = touch.identifier;
+            handleJoyStart(touch.clientX, touch.clientY);
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!joystickActive) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === joyTouchId) {
+                    handleJoyMove(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+                    break;
+                }
+            }
+        });
+
+        window.addEventListener('touchend', (e) => {
+            if (!joystickActive) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === joyTouchId) {
+                    handleJoyEnd();
+                    break;
+                }
+            }
+        });
+
+        // Buttons
+        const btnSprint = document.getElementById('btnSprint');
+        btnSprint.addEventListener('mousedown', () => state.isSprinting = true);
+        window.addEventListener('mouseup', () => state.isSprinting = false);
+        btnSprint.addEventListener('touchstart', (e) => { e.preventDefault(); state.isSprinting = true; });
+        btnSprint.addEventListener('touchend', () => state.isSprinting = false);
+
+        document.getElementById('btnHorn').addEventListener('click', () => {
+            playHornSound();
+        });
+
+        function toggleVehicleMode() {
+            const dist = Math.hypot(state.x - state.danfoX, state.y - state.danfoY);
+            if (state.mode === 'walking') {
+                if (dist < 80) {
+                    state.mode = 'driving';
+                    document.getElementById('modeDisplay').textContent = 'DRIVING DANFO BUS';
+                    document.getElementById('modeDisplay').style.color = 'var(--lagos-yellow)';
+                    document.getElementById('btnInteract').innerHTML = 'EXIT<span>E / Walk</span>';
+                }
+            } else {
+                state.mode = 'walking';
+                state.x = state.danfoX - 50;
+                state.y = state.danfoY;
+                document.getElementById('modeDisplay').textContent = 'ON FOOT (WALKING)';
+                document.getElementById('modeDisplay').style.color = 'var(--green-accent)';
+                document.getElementById('btnInteract').innerHTML = 'DANFO<span>E / Enter</span>';
+            }
+        }
+
+        document.getElementById('btnInteract').addEventListener('click', toggleVehicleMode);
+
+        // Game Simulation Loop
+        function loop() {
+            let kx = 0;
+            let ky = 0;
+            if (keys['w'] || keys['arrowup']) ky += 1;
+            if (keys['s'] || keys['arrowdown']) ky -= 1;
+            if (keys['a'] || keys['arrowleft']) kx -= 1;
+            if (keys['d'] || keys['arrowright']) kx += 1;
+
+            let curMoveX = joystickActive ? state.moveX : kx;
+            let curMoveY = joystickActive ? state.moveY : ky;
+
+            // Clamping
+            const mag = Math.hypot(curMoveX, curMoveY);
+            if (mag > 1) {
+                curMoveX /= mag;
+                curMoveY /= mag;
+            }
+
+            document.getElementById('statMove').textContent = `(${curMoveX.toFixed(2)}, ${curMoveY.toFixed(2)})`;
+
+            if (state.mode === 'walking') {
+                const baseSpeed = state.isSprinting ? 4.5 : 2.5;
+                if (mag > 0.05) {
+                    state.angle = Math.atan2(-curMoveX, curMoveY);
+                    state.x += curMoveX * baseSpeed;
+                    state.y -= curMoveY * baseSpeed;
+                }
+                state.speed = (mag * baseSpeed * 3.6).toFixed(1);
+            } else {
+                // Driving Danfo
+                const accel = curMoveY * 0.15;
+                state.danfoSpeed += accel;
+                state.danfoSpeed *= 0.95; // Drag
+
+                if (Math.abs(state.danfoSpeed) > 0.05) {
+                    state.danfoAngle += curMoveX * 0.05 * (state.danfoSpeed > 0 ? 1 : -1);
+                }
+
+                state.danfoX += Math.sin(state.danfoAngle) * state.danfoSpeed * 2.5;
+                state.danfoY -= Math.cos(state.danfoAngle) * state.danfoSpeed * 2.5;
+
+                state.x = state.danfoX;
+                state.y = state.danfoY;
+                state.speed = (Math.abs(state.danfoSpeed) * 14.5).toFixed(1);
+            }
+
+            // Wrap bounds
+            if (state.x < 20) state.x = canvas.width - 20;
+            if (state.x > canvas.width - 20) state.x = 20;
+            if (state.y < 20) state.y = canvas.height - 20;
+            if (state.y > canvas.height - 20) state.y = 20;
+
+            if (state.danfoX < 20) state.danfoX = canvas.width - 20;
+            if (state.danfoX > canvas.width - 20) state.danfoX = 20;
+            if (state.danfoY < 20) state.danfoY = canvas.height - 20;
+            if (state.danfoY > canvas.height - 20) state.danfoY = 20;
+
+            document.getElementById('speedDisplay').textContent = `${state.speed} km/h`;
+            document.getElementById('headingDisplay').textContent = `${Math.round(((state.angle * 180 / Math.PI) + 360) % 360)}°`;
+
+            const dist = Math.hypot(state.x - state.danfoX, state.y - state.danfoY);
+            if (state.mode === 'walking') {
+                document.getElementById('statVehicle').textContent = dist < 80 ? 'IN RANGE (Tap DANFO / Press E)' : 'AWAY';
+            } else {
+                document.getElementById('statVehicle').textContent = 'DRIVING (Tap EXIT / Press E)';
+            }
+
+            // Render
+            render();
+            requestAnimationFrame(loop);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Lagos Asphalt Street
+            ctx.fillStyle = '#111722';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Street Markings
+            ctx.strokeStyle = '#273349';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < canvas.width; i += 60) {
+                ctx.beginPath();
+                ctx.moveTo(i, canvas.height / 2);
+                ctx.lineTo(i + 30, canvas.height / 2);
+                ctx.stroke();
+            }
+
+            // Draw Lagos Yellow Danfo Minibus
+            ctx.save();
+            ctx.translate(state.danfoX, state.danfoY);
+            ctx.rotate(state.danfoAngle);
+
+            // Bus Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fillRect(-28, -50, 56, 100);
+
+            // Danfo Yellow Body
+            ctx.fillStyle = '#FFC72C';
+            ctx.fillRect(-24, -46, 48, 92);
+
+            // Danfo Iconic Black Stripes
+            ctx.fillStyle = '#1A1A1A';
+            ctx.fillRect(-24, -20, 48, 8);
+            ctx.fillRect(-24, 10, 48, 8);
+
+            // Windshield & Windows
+            ctx.fillStyle = '#38BDF8';
+            ctx.fillRect(-20, -42, 40, 16);
+            ctx.fillStyle = '#233246';
+            ctx.fillRect(-20, -10, 8, 16);
+            ctx.fillRect(12, -10, 8, 16);
+
+            // Headlights
+            ctx.fillStyle = '#FEF08A';
+            ctx.fillRect(-22, -48, 8, 4);
+            ctx.fillRect(14, -48, 8, 4);
+
+            // Taillights
+            ctx.fillStyle = '#EF4444';
+            ctx.fillRect(-22, 44, 8, 4);
+            ctx.fillRect(14, 44, 8, 4);
+
+            ctx.restore();
+
+            // Draw Player Character (if on foot)
+            if (state.mode === 'walking') {
+                ctx.save();
+                ctx.translate(state.x, state.y);
+                ctx.rotate(state.angle);
+
+                // Player Shadow
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.beginPath();
+                ctx.arc(0, 2, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Player Body (African fabric vibrant green & yellow)
+                ctx.fillStyle = '#008751';
+                ctx.beginPath();
+                ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Head
+                ctx.fillStyle = '#5C381E';
+                ctx.beginPath();
+                ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Direction pointer
+                ctx.fillStyle = '#FFC72C';
+                ctx.beginPath();
+                ctx.moveTo(0, -12);
+                ctx.lineTo(-4, -6);
+                ctx.lineTo(4, -6);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        requestAnimationFrame(loop);
+
+        // --- C# Code Viewer Scripts Data ---
+        const scriptCodes = {
+            inputManager: `// Assets/Scripts/Input/InputManager.cs
+using UnityEngine;
+
+namespace LagosLifestyle.Input
+{
+    public class InputManager : MonoBehaviour
+    {
+        public static InputManager Instance { get; private set; }
+
+        [SerializeField] private bool forceMobileUI = false;
+
+        [Header("Read-Only State")]
+        [SerializeField] private Vector2 moveInput;
+        [SerializeField] private Vector2 lookInput;
+        [SerializeField] private bool isSprinting;
+        [SerializeField] private bool jumpTriggered;
+        [SerializeField] private bool interactTriggered;
+        [SerializeField] private bool handbrakeTriggered;
+        [SerializeField] private bool hornTriggered;
+
+        private Vector2 virtualMoveInput;
+        private bool virtualSprint, virtualJump, virtualInteract, virtualHandbrake, virtualHorn;
+
+        public Vector2 MoveInput => moveInput;
+        public bool IsSprinting => isSprinting;
+        public bool JumpTriggered => jumpTriggered;
+        public bool InteractTriggered => interactTriggered;
+        public bool HandbrakeTriggered => handbrakeTriggered;
+        public bool HornTriggered => hornTriggered;
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+
+        private void Update()
+        {
+            float h = UnityEngine.Input.GetAxisRaw("Horizontal");
+            float v = UnityEngine.Input.GetAxisRaw("Vertical");
+            Vector2 rawKeyboard = new Vector2(h, v).normalized;
+
+            moveInput = (virtualMoveInput.sqrMagnitude > 0.01f) ? virtualMoveInput : rawKeyboard;
+            isSprinting = UnityEngine.Input.GetKey(KeyCode.LeftShift) || virtualSprint;
+            jumpTriggered = UnityEngine.Input.GetKeyDown(KeyCode.Space) || virtualJump;
+            interactTriggered = UnityEngine.Input.GetKeyDown(KeyCode.E) || virtualInteract;
+            handbrakeTriggered = UnityEngine.Input.GetKey(KeyCode.Space) || virtualHandbrake;
+            hornTriggered = UnityEngine.Input.GetKeyDown(KeyCode.H) || virtualHorn;
+        }
+
+        public void SetVirtualMove(Vector2 vector) => virtualMoveInput = vector;
+        public void SetVirtualSprint(bool active) => virtualSprint = active;
+        public void TriggerVirtualJump() => virtualJump = true;
+        public void TriggerVirtualInteract() => virtualInteract = true;
+    }
+}`,
+            joystick: `// Assets/Scripts/Input/VirtualJoystick.cs
+using UnityEngine;
+using UnityEngine.EventSystems;
+
+namespace LagosLifestyle.Input
+{
+    public class VirtualJoystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
+    {
+        [SerializeField] private RectTransform background;
+        [SerializeField] private RectTransform handle;
+        [SerializeField] private float handleRange = 64f;
+        [SerializeField] private float deadZone = 0.1f;
+
+        private Vector2 inputVector = Vector2.zero;
+        private Canvas canvas;
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(background, eventData.position, null, out Vector2 pos))
+            {
+                pos.x /= background.sizeDelta.x;
+                pos.y /= background.sizeDelta.y;
+
+                inputVector = new Vector2(pos.x * 2f, pos.y * 2f);
+                if (inputVector.magnitude > 1f) inputVector.Normalize();
+
+                if (handle != null) handle.anchoredPosition = inputVector * handleRange;
+                if (InputManager.Instance != null) InputManager.Instance.SetVirtualMove(inputVector);
+            }
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            inputVector = Vector2.zero;
+            if (handle != null) handle.anchoredPosition = Vector2.zero;
+            if (InputManager.Instance != null) InputManager.Instance.SetVirtualMove(Vector2.zero);
+        }
+    }
+}`,
+            touchButton: `// Assets/Scripts/Input/TouchActionButton.cs
+using UnityEngine;
+using UnityEngine.EventSystems;
+
+namespace LagosLifestyle.Input
+{
+    public class TouchActionButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
+    {
+        [SerializeField] private TouchButtonAction actionType;
+        [SerializeField] private bool isHoldAction = false;
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (InputManager.Instance == null) return;
+            switch (actionType)
+            {
+                case TouchButtonAction.Jump: InputManager.Instance.TriggerVirtualJump(); break;
+                case TouchButtonAction.Sprint: InputManager.Instance.SetVirtualSprint(true); break;
+                case TouchButtonAction.Interact: InputManager.Instance.TriggerVirtualInteract(); break;
+            }
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            if (isHoldAction && actionType == TouchButtonAction.Sprint)
+                InputManager.Instance.SetVirtualSprint(false);
+        }
+    }
+}`,
+            player: `// Assets/Scripts/Player/PlayerController.cs
+using UnityEngine;
+using LagosLifestyle.Input;
+
+namespace LagosLifestyle.Player
+{
+    [RequireComponent(typeof(CharacterController))]
+    public class PlayerController : MonoBehaviour
+    {
+        [SerializeField] private float walkSpeed = 3.5f;
+        [SerializeField] private float sprintSpeed = 7.0f;
+        [SerializeField] private float jumpHeight = 1.5f;
+        [SerializeField] private float gravity = -18f;
+        [SerializeField] private Transform cameraTransform;
+
+        private CharacterController controller;
+        private Vector3 verticalVelocity;
+
+        private void Update()
+        {
+            if (InputManager.Instance == null) return;
+
+            Vector2 input = InputManager.Instance.MoveInput;
+            Vector3 camFwd = cameraTransform.forward;
+            camFwd.y = 0; camFwd.Normalize();
+            Vector3 camRight = cameraTransform.right;
+            camRight.y = 0; camRight.Normalize();
+
+            Vector3 move = (camFwd * input.y + camRight * input.x).normalized;
+            if (move.sqrMagnitude > 0.001f)
+            {
+                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(move), 12f * Time.deltaTime);
+                float speed = InputManager.Instance.IsSprinting ? sprintSpeed : walkSpeed;
+                controller.Move(move * (speed * Time.deltaTime));
+            }
+        }
+    }
+}`,
+            car: `// Assets/Scripts/Vehicles/CarController.cs
+using UnityEngine;
+using LagosLifestyle.Input;
+
+namespace LagosLifestyle.Vehicles
+{
+    public class CarController : MonoBehaviour
+    {
+        [SerializeField] private WheelSlot frontLeft, frontRight, rearLeft, rearRight;
+        [SerializeField] private float motorTorque = 1600f;
+        [SerializeField] private float maxSteerAngle = 35f;
+        [SerializeField] private Vector3 centerOfMassOffset = new Vector3(0f, -0.6f, 0f);
+
+        private Rigidbody rb;
+
+        private void Awake()
+        {
+            rb = GetComponent<Rigidbody>();
+            rb.centerOfMass += centerOfMassOffset; // Danfo anti-roll stabilization
+        }
+
+        private void FixedUpdate()
+        {
+            Vector2 input = InputManager.Instance.MoveInput;
+            float steer = input.x * maxSteerAngle;
+            float throttle = input.y * motorTorque;
+
+            frontLeft.collider.steerAngle = steer;
+            frontRight.collider.steerAngle = steer;
+            rearLeft.collider.motorTorque = throttle;
+            rearRight.collider.motorTorque = throttle;
+        }
+    }
+}`,
+            entryExit: `// Assets/Scripts/Vehicles/VehicleEntryExit.cs
+using UnityEngine;
+using LagosLifestyle.Player;
+
+namespace LagosLifestyle.Vehicles
+{
+    public class VehicleEntryExit : MonoBehaviour, IInteractable
+    {
+        [SerializeField] private Transform exitPoint;
+        [SerializeField] private GameObject vehicleCamera;
+        [SerializeField] private GameObject playerCamera;
+
+        private CarController car;
+        private GameObject player;
+        private bool isDriving = false;
+
+        public void EnterVehicle(GameObject p)
+        {
+            player = p;
+            isDriving = true;
+            player.SetActive(false);
+            car.SetDriverControl(true);
+            playerCamera.SetActive(false);
+            vehicleCamera.SetActive(true);
+        }
+
+        public void ExitVehicle()
+        {
+            car.SetDriverControl(false);
+            player.transform.position = exitPoint.position;
+            player.SetActive(true);
+            vehicleCamera.SetActive(false);
+            playerCamera.SetActive(true);
+            isDriving = false;
+        }
+    }
+}`
+        };
+
+        function switchScript(name) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('codeViewer').textContent = scriptCodes[name] || '// Script not found';
+        }
+
+        // Initialize with inputManager
+        document.getElementById('codeViewer').textContent = scriptCodes.inputManager;
+    </script>
+</body>
+</html>
