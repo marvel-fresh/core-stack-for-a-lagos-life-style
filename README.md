@@ -11,6 +11,7 @@ Cross-platform (Mobile + PC) open-world game architecture set in Lagos, Nigeria.
 - **Character Rigging & Animations:** Mixamo with root motion / procedural blend trees.
 - **Input Architecture:** Unified cross-platform input abstraction mapping seamlessly to **PC (Keyboard/Mouse, Gamepad)** and **Mobile (Virtual Touch Joystick & UI Action Buttons)**.
 - **Physics:** Unity `WheelCollider` suspension and torque physics with lowered Center of Mass for stable Danfo driving.
+- **Gameplay Systems:** Danfo passenger pickup & drop-off routes, in-game Naira (₦) economy, NavMesh pedestrian crowds.
 - **Audio:** Afrobeats radio broadcast system, Lagos traffic horns, and ambient street sounds.
 
 ---
@@ -23,14 +24,20 @@ Cross-platform (Mobile + PC) open-world game architecture set in Lagos, Nigeria.
 │       ├── Input/
 │       │   ├── InputManager.cs         # Centralized cross-platform input hub
 │       │   ├── VirtualJoystick.cs      # Floating & fixed UI drag joystick
-│       │   ├── TouchActionButton.cs    # Jump, Sprint, Enter Danfo, Handbrake
+│       │   ├── TouchActionButton.cs    # Jump, Sprint, Enter Danfo, Handbrake, Horn
 │       │   └── MobileControlsToggle.cs # Auto-detects mobile vs PC & switches HUDs
 │       ├── Player/
 │       │   ├── PlayerController.cs     # Third-person character controller
 │       │   └── PlayerInteraction.cs    # Proximity detector (Danfo, Vendors, NPCs)
-│       └── Vehicles/
-│           ├── CarController.cs        # 4-wheel physics, steering, torque, Lagos horn
-│           └── VehicleEntryExit.cs     # Seamless vehicle enter/exit & camera swap
+│       ├── Vehicles/
+│       │   ├── CarController.cs        # 4-wheel physics, steering, torque, Lagos horn
+│       │   └── VehicleEntryExit.cs     # Seamless vehicle enter/exit & camera swap
+│       ├── Missions/
+│       │   └── DanfoMissionManager.cs  # Passenger stops (Oshodi, Ojuelegba, CMS) & fare collection
+│       ├── Economy/
+│       │   └── EconomyManager.cs       # Naira (₦) wallet, fuel, fares & repairs
+│       └── AI/
+│           └── PedestrianAI.cs         # NavMesh Lagos market crowd simulation
 ├── index.html                          # Interactive web dashboard & input simulator
 └── README.md
 ```
@@ -47,7 +54,7 @@ bool isSprinting = InputManager.Instance.IsSprinting;
 bool jump = InputManager.Instance.JumpTriggered;
 bool interact = InputManager.Instance.InteractTriggered;
 ```
-- **On PC:** Reads `Horizontal`, `Vertical`, `LeftShift`, `Space`, `E`/`F`.
+- **On PC:** Reads `Horizontal`, `Vertical`, `LeftShift`, `Space`, `E`/`F`, `H`.
 - **On Mobile:** The `VirtualJoystick` and `TouchActionButton` components feed into `InputManager.Instance.SetVirtualMove(...)` and action triggers.
 
 ### 2. Mobile Canvas Scaler Settings
